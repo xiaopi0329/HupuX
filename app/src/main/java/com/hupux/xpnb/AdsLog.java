@@ -33,6 +33,9 @@ public final class AdsLog {
     private static final Queue<String> PENDING = new ConcurrentLinkedQueue<>();
     private static final int MAX_PENDING = 200;
 
+    /** 模块 App 暂不可用时，隔多久重试一次把暂存的记录写出去。 */
+    private static final long RETRY_DELAY_MS = 20_000L;
+
     private static volatile Context appContext;
     private static volatile boolean flushScheduled;
     private static volatile boolean warnedUnavailable;
@@ -116,17 +119,23 @@ public final class AdsLog {
                 }
             } catch (InterruptedException ignored) {
             }
-            drain();
+            boolean ok = drain();
             synchronized (AdsLog.class) {
                 flushScheduled = false;
+            }
+            // 模块 App 还没起来（刚安装没启动过、或被强停）时，光等下一次记录到来
+            // 会把暂存的记录一直压着 —— 用户打开模块就会看到空日志。这里定时重试。
+            if (!ok && !PENDING.isEmpty()) {
+                scheduleFlush(RETRY_DELAY_MS);
             }
         });
     }
 
-    private static void drain() {
+    /** @return 是否全部写出成功 */
+    private static boolean drain() {
         Context ctx = appContext;
         if (ctx == null || PENDING.isEmpty()) {
-            return;
+            return true;
         }
         String line;
         while ((line = PENDING.poll()) != null) {
@@ -143,9 +152,10 @@ public final class AdsLog {
                     warnedUnavailable = true;
                     Log.w(TAG, "[记录] 模块日志暂不可写入（模块 App 未启动/未安装？），已暂存待重试：" + t);
                 }
-                return;
+                return false;
             }
         }
         warnedUnavailable = false;
+        return true;
     }
 }

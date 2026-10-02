@@ -3,7 +3,7 @@
 虎扑（`com.hupu.games`）去广告 Xposed 模块，基于 **libxposed 现代 Xposed API**
 （`io.github.libxposed:api:102.0.0`）实现。
 
-同时支持 **LSPosed**（需 root）与免 root 框架 **FPA**。
+同时支持 **LSPosed**（需 root）与免 root 框架 **FPA / LSPatch**。
 
 <img src="docs/screenshots/main.png" width="320" alt="模块主界面">
 
@@ -30,7 +30,8 @@
 
 - Android 9 ~ 17
 - **root**：LSPosed 2.2.0 或更高
-- **免 root**：FPA 3.8（已实测）
+- **免 root**：FPA 3.8 / LSPatch 1.2（均已实测）
+    - ⚠️ 用 LSPatch 打补丁时**必须加 `--sigbypasslv 3`**，原因见下面的实测记录
 - 作用域：虎扑 `com.hupu.games`（基于 8.2.63 编写并实测通过）
 
 ## 安装
@@ -42,7 +43,7 @@
 3. 作用域勾选「虎扑」；
 4. 强行停止虎扑后重新打开。
 
-### 免 root（FPA）
+### 免 root（FPA / LSPatch）
 
 在框架里选择虎扑 → 勾选 **HupuX** → 打补丁并安装。
 注意免 root 方式需要先卸载原版虎扑（签名不同），**会丢失登录数据**。
@@ -55,6 +56,18 @@
 - FPA **不把模块打进 APK**，而是在运行时从「已安装的模块 APK」加载。所以升级模块只要重装模块 APK，**不需要重新 patch 虎扑**。
 - FPA 会按 `module.prop` 的 `targetApiVersion` 自动选择兼容层（本模块声明 102，日志里可见 `wrappers=[xp102]`）。
 - `getRemotePreferences` 可用，模块里的开关能正常读到。
+
+**LSPatch 1.2**（vivo V2425A / Android 16，无 root）
+
+- ⚠️ **打补丁时必须加 `--sigbypasslv 3`**。虎扑带网易易盾的签名校验，用默认等级（0 或 2）打出来的包会正常启动、显示主页，然后一两秒后静默退出。（已实测：这条与模块无关 —— 不带模块的补丁包同样会退出。）
+
+  ```bash
+  java -jar lspatch.jar -m HupuX.apk -l 3 -f hupu.apk
+  ```
+
+- LSPatch 本地模式会把模块**嵌进**目标 APK（`assets/lspatch/modules/<包名>.apk`），因此**升级模块必须重新 patch 目标应用**（连带卸载重装、丢失应用数据）。这一点和 FPA 正好相反。
+- `getRemotePreferences` 可用，模块里的开关能正常读到。
+- 补丁产物里会保留原包（`assets/lspatch/origin.apk`），所以拿「已安装的补丁版」再 patch 一次会得到双层叠加的包；要干净的结果请用原始 APK 作为输入。
 
 ## 使用
 
@@ -169,7 +182,7 @@ release 包约 **54 KB**（早期版本 2.5 MB）。主要做了三件事：
 ## 已知限制
 
 - Hook 点基于虎扑 **8.2.63** 的类名编写。虎扑升级后若类名变化，精确 Hook 会失效，但「视图兜底」和「SDK 初始化阻断」仍能起作用；可用「运行时类加载探针」定位新类名。
-- `minApiVersion=101`，需要支持 libxposed 现代 API 的框架（LSPosed 2.x / FPA 3.x）。
+- `minApiVersion=101`，需要支持 libxposed 现代 API 的框架（LSPosed 2.x / FPA 3.x / LSPatch 1.x）。
 - 清空虎扑应用数据会让「首次使用协议」重新弹出。
 
 ## 免责声明
