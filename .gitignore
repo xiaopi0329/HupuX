@@ -1,0 +1,23 @@
+# Gradle 构建产物
+.gradle/
+build/
+app/build/
+
+# 本机配置（含本机 Android SDK 路径，不该入库）
+local.properties
+
+# 签名密钥：绝不入库。
+# 私钥一旦公开，任何人都能签出可以覆盖安装到用户手机上的"假更新"。
+*.jks
+*.keystore
+
+# libxposed API 的本地 jar 副本（构建走 Maven 坐标，不需要它）
+app/libs/
+
+# 编辑器 / 系统杂物
+.idea/
+*.iml
+.DS_Store
+
+# 协作时其他工具留下的备份目录
+_backup_other_agent/

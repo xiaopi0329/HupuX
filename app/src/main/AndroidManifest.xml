@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!--
+      libxposed 模块的“身份”不由 manifest 决定，而由 APK 内的三个文件决定：
+        META-INF/xposed/module.prop    模块元数据(minApiVersion/targetApiVersion)
+        META-INF/xposed/java_init.list 入口类列表
+        META-INF/xposed/scope.list     默认作用域(包名)
+      manifest 里只需要一个普通的、能被 LSPosed 管理器打开的 App。
+    -->
+
+    <application
+        android:allowBackup="false"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:description="@string/module_description"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.HupuX">
+
+        <!--
+          设置界面本身不带 LAUNCHER：桌面图标挂在下面的 activity-alias 上，
+          这样「隐藏桌面图标」只要禁用 alias 即可，App 自身仍然可以正常被启动
+          （虎扑设置页右上角那个入口就是按类名直接启动它的）。
+        -->
+        <activity
+            android:name=".MainActivity"
+            android:exported="true"
+            android:label="@string/app_name" />
+
+        <activity
+            android:name=".LogActivity"
+            android:exported="false"
+            android:label="@string/log_title" />
+
+        <activity-alias
+            android:name=".LauncherAlias"
+            android:targetActivity=".MainActivity"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <!--
+          接收虎扑进程里的模块写来的拦截日志。
+          两个进程 UID 不同，只能靠 ContentProvider 跨进程写，所以必须 exported。
+        -->
+        <provider
+            android:name=".LogProvider"
+            android:authorities="com.hupux.xpnb.log"
+            android:exported="true" />
+    </application>
+
+</manifest>

@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">HupuX</string>
+    <string name="module_description">虎扑去广告 Xposed 模块：跳过开屏广告、屏蔽信息流/浮窗广告、阻断广告 SDK 初始化，并提供运行时类加载探针。基于 libxposed API 102。</string>
+
+    <string name="main_subtitle">虎扑去广告模块 · libxposed API 102</string>
+    <string name="footer_log">日志：adb logcat -s HupuX</string>
+    <string name="footer_info">版本 %1$s · 作用域 com.hupu.games</string>
+
+    <string name="status_enabled">已启用 %1$d / %2$d 项广告拦截</string>
+    <string name="status_hint">改完开关后，需要「强行停止虎扑」再重新打开才生效</string>
+
+    <string name="group_block">广告拦截</string>
+    <string name="group_debug">兜底与调试</string>
+
+    <string name="item_skip_splash">跳过开屏广告</string>
+    <string name="item_skip_splash_desc">拦截 HpSplashAd#show，开屏不再展示广告</string>
+    <string name="item_block_sdk">阻断广告 SDK 初始化</string>
+    <string name="item_block_sdk_desc">拦截穿山甲 TTSdkManager 与虎扑 Noah SDK 的 initSdk</string>
+    <string name="item_block_feed">屏蔽信息流广告</string>
+    <string name="item_block_feed_desc">canLoadAd 返回 false，列表页不再插入广告卡</string>
+    <string name="item_block_float">屏蔽浮窗广告</string>
+    <string name="item_block_float_desc">拦截 HpAdFloatCore 的网络加载与成功回调</string>
+
+    <string name="item_view_skip">视图兜底：自动点击「跳过」</string>
+    <string name="item_view_skip_desc">不依赖类名，屏幕上出现「跳过」就点它</string>
+    <string name="item_probe">运行时类加载探针</string>
+    <string name="item_probe_desc">调试用：把加载到的广告相关类名打到 logcat</string>
+    <string name="item_verbose">输出详细日志</string>
+    <string name="item_verbose_desc">关闭后只输出关键日志</string>
+
+    <string name="group_app">应用</string>
+    <string name="item_hide_icon">隐藏桌面图标</string>
+    <string name="item_hide_icon_desc">隐藏后仍可从虎扑「设置 → 右上角 HupuX」进入</string>
+    <string name="item_hide_icon_desc_hidden">已隐藏，从虎扑「设置 → 右上角 HupuX」进入</string>
+    <string name="item_view_log">查看拦截日志</string>
+    <string name="item_view_log_desc">每次广告拦截的结果都记录在这里</string>
+    <string name="toast_hide_icon_failed">切换失败：%1$s</string>
+
+    <string name="log_title">拦截日志</string>
+    <string name="log_clear">清空</string>
+    <string name="log_empty">暂无记录。\n打开虎扑浏览几页，再回到这里看看。</string>
+    <string name="log_summary">共 %1$d 条记录 · 其中「已拦截」%2$d 次</string>
+</resources>
