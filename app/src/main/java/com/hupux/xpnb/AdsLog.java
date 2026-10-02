@@ -35,6 +35,7 @@ public final class AdsLog {
 
     private static volatile Context appContext;
     private static volatile boolean flushScheduled;
+    private static volatile boolean warnedUnavailable;
     private static ExecutorService executor;
 
     private AdsLog() {
@@ -134,11 +135,17 @@ public final class AdsLog {
                 values.put(LogProvider.COLUMN_RECORD, line);
                 ctx.getContentResolver().insert(ENDPOINT, values);
             } catch (Throwable t) {
-                // 模块 App 没装 / Provider 不可用：丢掉这批，别反复重试
-                PENDING.clear();
-                Log.w(TAG, "[记录] 写入模块日志失败（模块 App 是否已安装？）：" + t);
+                // 模块 App 没装、被强行停止、或 Provider 暂时不可用。
+                // 这里**不丢**记录，留在队列里等下次（最多 200 条），
+                // 这样模块 App 一旦可用，之前的记录还能补上。
+                PENDING.add(line);
+                if (!warnedUnavailable) {
+                    warnedUnavailable = true;
+                    Log.w(TAG, "[记录] 模块日志暂不可写入（模块 App 未启动/未安装？），已暂存待重试：" + t);
+                }
                 return;
             }
         }
+        warnedUnavailable = false;
     }
 }

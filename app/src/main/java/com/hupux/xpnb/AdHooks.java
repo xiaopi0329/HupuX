@@ -1,5 +1,7 @@
 package com.hupux.xpnb;
 
+import java.lang.reflect.Method;
+
 /**
  * 精确 Hook 点：全部来自对虎扑 8.2.63 脱壳 dex 的静态分析（见 docs/REPORT.md）。
  *
@@ -29,8 +31,12 @@ public final class AdHooks {
     private static void registerSplash() {
         final String f = "开屏";
 
-        // 广告真正被展示的入口。不 proceed 就等于「不展示广告」，
-        // SplashFragment 会走它自己的兜底逻辑（显示品牌页并倒计时结束）。
+        // 广告真正被展示的入口。
+        //
+        // 注意：不能只是简单地 return null。开屏页在等「广告已关闭」的回调来决定何时收尾
+        // （HpSplashActionListener#onAdDismissed），把 show() 拦掉却又不给回调，
+        // 开屏页就会永远等下去 —— 实测表现就是卡在开屏界面。
+        // 所以这里拦掉展示之后，主动把「广告已关闭」补给它。
         HookRegistry.register("com.hupu.adver_boot.HpSplashAd", "show", chain -> {
             if (!Config.skipSplashAd) {
                 AdsLog.allowed(f, "HpSplashAd#show");
@@ -39,10 +45,11 @@ public final class AdHooks {
             Config.v("[" + f + "] 拦截 HpSplashAd.show() this="
                     + HookUtil.shortName(chain.getThisObject()));
             AdsLog.blocked(f, "HpSplashAd#show");
+            notifyAdDismissed(chain.getThisObject());
             return null;
         }, f);
 
-        // 开屏页 UI 里主动展示广告的两个方法，一并拦掉。
+        // 开屏页 UI 里主动展示广告的两个方法：拦掉原方法之后，直接让开屏页收尾。
         HookRegistry.register("com.hupu.games.main.splash.SplashFragment", "showSplashAd", chain -> {
             if (!Config.skipSplashAd) {
                 AdsLog.allowed(f, "SplashFragment#showSplashAd");
@@ -50,6 +57,7 @@ public final class AdHooks {
             }
             Config.v("[" + f + "] 拦截 SplashFragment.showSplashAd()");
             AdsLog.blocked(f, "SplashFragment#showSplashAd");
+            finishSplashPage(chain.getThisObject());
             return null;
         }, f);
 
@@ -60,8 +68,58 @@ public final class AdHooks {
             }
             Config.v("[" + f + "] 拦截 SplashFragment.showSplashVideo()");
             AdsLog.blocked(f, "SplashFragment#showSplashVideo");
+            finishSplashPage(chain.getThisObject());
             return null;
         }, f);
+    }
+
+    /**
+     * 把「广告已关闭」补报给开屏页。
+     *
+     * <p>{@code HpSplashAd} 内部持有注册进来的 {@code HpSplashActionListener}，
+     * Kotlin 会为私有字段生成 {@code access$getActionListener$p} 这样的合成访问器，
+     * 反射调它即可拿到监听器，再调用 {@code onAdDismissed}。</p>
+     */
+    private static void notifyAdDismissed(Object ad) {
+        if (ad == null) {
+            return;
+        }
+        try {
+            Class<?> adClass = ad.getClass();
+            Method getter = adClass.getDeclaredMethod("access$getActionListener$p", adClass);
+            getter.setAccessible(true);
+            Object listener = getter.invoke(null, ad);
+            if (listener == null) {
+                Config.w("[开屏] 动作监听器尚未注册，无法补报关闭事件");
+                return;
+            }
+            ClassLoader cl = adClass.getClassLoader();
+            Class<?> dismissTypeClass = Class.forName(
+                    "com.hupu.adver_boot.listener.HpBootAdDismissType", false, cl);
+            Object[] constants = dismissTypeClass.getEnumConstants();
+            Object dismissType = (constants != null && constants.length > 0) ? constants[0] : null;
+            Method onDismissed = listener.getClass()
+                    .getMethod("onAdDismissed", dismissTypeClass);
+            onDismissed.invoke(listener, dismissType);
+            Config.i("[开屏] 已补报「广告已关闭」，开屏页可正常收尾");
+        } catch (Throwable t) {
+            Config.w("[开屏] 补报关闭事件失败：" + t);
+        }
+    }
+
+    /** 直接让开屏页收尾（SplashFragment 自己的出口方法）。 */
+    private static void finishSplashPage(Object fragment) {
+        if (fragment == null) {
+            return;
+        }
+        try {
+            Method finish = fragment.getClass().getDeclaredMethod("finishPage", String.class);
+            finish.setAccessible(true);
+            finish.invoke(fragment, "");
+            Config.i("[开屏] 已直接结束开屏页");
+        } catch (Throwable t) {
+            Config.w("[开屏] 结束开屏页失败：" + t);
+        }
     }
 
     private static void registerSdkInit() {
