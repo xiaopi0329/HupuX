@@ -3,7 +3,7 @@
 虎扑（`com.hupu.games`）去广告 Xposed 模块，基于 **libxposed 现代 Xposed API**
 （`io.github.libxposed:api:102.0.0`）实现。
 
-同时支持 **LSPosed**（需 root）与免 root 框架 **FPA / LSPatch / HKP**。
+同时支持 **LSPosed**（需 root）与免 root 框架 **FPA**。
 
 <img src="docs/screenshots/main.png" width="320" alt="模块主界面">
 
@@ -30,8 +30,7 @@
 
 - Android 9 ~ 17
 - **root**：LSPosed 2.2.0 或更高
-- **免 root**：FPA 3.8（已实测）/ LSPatch 1.2 / HKP 2.0-266
-    - ⚠️ 用 LSPatch 打补丁时**必须加 `--sigbypasslv 3`**。虎扑带网易易盾的签名校验，默认等级打出来的包会正常启动、显示主页，然后一两秒后静默退出。（已实测：这条与模块无关，不带模块的补丁包同样会退出）
+- **免 root**：FPA 3.8（已实测）
 - 作用域：虎扑 `com.hupu.games`（基于 8.2.63 编写并实测通过）
 
 ## 安装
@@ -43,7 +42,7 @@
 3. 作用域勾选「虎扑」；
 4. 强行停止虎扑后重新打开。
 
-### 免 root（FPA / LSPatch / HKP）
+### 免 root（FPA）
 
 在框架里选择虎扑 → 勾选 **HupuX** → 打补丁并安装。
 注意免 root 方式需要先卸载原版虎扑（签名不同），**会丢失登录数据**。
@@ -170,7 +169,7 @@ release 包约 **54 KB**（早期版本 2.5 MB）。主要做了三件事：
 ## 已知限制
 
 - Hook 点基于虎扑 **8.2.63** 的类名编写。虎扑升级后若类名变化，精确 Hook 会失效，但「视图兜底」和「SDK 初始化阻断」仍能起作用；可用「运行时类加载探针」定位新类名。
-- `minApiVersion=101`，需要支持 libxposed 现代 API 的框架（LSPosed 2.x / FPA 3.x / LSPatch 1.x / HKP 2.x）。
+- `minApiVersion=101`，需要支持 libxposed 现代 API 的框架（LSPosed 2.x / FPA 3.x）。
 - 清空虎扑应用数据会让「首次使用协议」重新弹出。
 
 ## 免责声明
