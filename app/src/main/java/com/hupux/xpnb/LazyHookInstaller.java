@@ -50,9 +50,14 @@ public final class LazyHookInstaller {
         installed = true;
         remember(appClassLoader);
 
-        // 两个重载都 hook：壳里两种调用方式都可能出现
-        hookLoadClass(api, findLoadClass(String.class, boolean.class));
-        hookLoadClass(api, findLoadClass(String.class));
+        // 这里刻意**不**挂钩 ClassLoader#loadClass，原因有两条：
+        //   1) 实测（LSPosed 与 FPA 上都是）目标类全部由下面的定时重试命中，
+        //      loadClass 那条路从未真正捕获过——因为 Java 层的 loadClass 只覆盖
+        //      显式调用，ART 在链接/校验阶段隐式解析类时不会走它；
+        //   2) loadClass 是极热路径，在 FPA(LSPlant) 上挂钩它会让虎扑卡死在启动阶段
+        //      （主线程停在 Hook 安装之后，进程活着但没有窗口）。
+        // 需要时可以在设置里打开「运行时类加载探针」用另一条路观察类加载。
+        Config.i("[延迟安装] 不挂钩 ClassLoader#loadClass，改用定时重试解析目标类");
 
         // 兜底：有些类可能在我们 hook 之前就已经加载，定时重试
         MAIN.postDelayed(new Runnable() {

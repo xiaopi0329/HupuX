@@ -44,12 +44,23 @@ public final class HupuModule extends XposedModule {
         }
 
         // 读取模块 App 里的开关（跨进程共享）
+        boolean remoteOk = false;
         try {
             SharedPreferences sp = getRemotePreferences(Config.PREFS_NAME);
             Config.load(sp);
+            remoteOk = true;
         } catch (Throwable t) {
             Config.e("读取远程配置失败，使用默认值", t);
         }
+
+        // 自报家门：不同的框架（LSPosed / FPA / LSPatch / HKP）能力有差异，
+        // 把「当前框架 + 开关有没有真的读到」写进拦截日志，
+        // 免 root 环境下出问题时不用连电脑看 logcat 也能定位。
+        String frameworkInfo = "框架 " + getFrameworkName() + " " + getFrameworkVersion()
+                + " / API " + getApiVersion() + " / 模块 " + BuildConfig.VERSION_NAME
+                + (remoteOk ? "，已读到模块开关" : "，读不到模块开关，本次用默认配置");
+        Config.i("[框架] " + frameworkInfo);
+        AdsLog.info("框架", frameworkInfo);
 
         Config.i("开始安装 Hook firstPackage=" + param.isFirstPackage()
                 + " | 开屏=" + Config.skipSplashAd
@@ -84,23 +95,39 @@ public final class HupuModule extends XposedModule {
      * 没有 Context 就没法上报。挂在 Application#attachBaseContext 上是最早的时机。
      */
     private void captureAppContext(XposedInterface api) {
+        // 不同 Android 版本 / 不同框架下，attachBaseContext 的声明位置不一样：
+        // 有的版本在 android.app.Application 上，有的只在 android.content.ContextWrapper 上。
+        // 依次尝试，谁先成功就用谁。
+        if (hookAttach(api, Application.class)) {
+            return;
+        }
+        if (hookAttach(api, android.content.ContextWrapper.class)) {
+            return;
+        }
+        Config.w("[日志] attachBaseContext 两种声明位置都没找到，改用 Activity 兜底");
+    }
+
+    private boolean hookAttach(XposedInterface api, Class<?> owner) {
         try {
-            Method attach = Application.class.getDeclaredMethod(
-                    "attachBaseContext", Context.class);
+            Method attach = owner.getDeclaredMethod("attachBaseContext", Context.class);
             api.hook(attach)
                     .setPriority(XposedInterface.PRIORITY_DEFAULT)
                     .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
                     .intercept(chain -> {
                         Object result = chain.proceed();
                         Object self = chain.getThisObject();
-                        if (self instanceof Context) {
+                        // 挂在 ContextWrapper 上时会命中 Activity / Service 等，
+                        // 只认 Application，确保拿到的是应用的 Context
+                        if (self instanceof Application) {
                             AdsLog.setContext((Context) self);
                         }
                         return result;
                     });
-            Config.i("[日志] OK 已挂钩 Application#attachBaseContext");
+            Config.i("[日志] OK 已挂钩 " + owner.getSimpleName() + "#attachBaseContext");
+            return true;
         } catch (Throwable t) {
-            Config.w("[日志] 挂钩 attachBaseContext 失败，改用 Activity 兜底：" + t);
+            Config.w("[日志] " + owner.getSimpleName() + "#attachBaseContext 不可用：" + t);
+            return false;
         }
     }
 }

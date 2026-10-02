@@ -30,7 +30,7 @@
 
 - Android 9 ~ 17
 - **root**：LSPosed 2.2.0 或更高
-- **免 root**：FPA 3.8 / LSPatch 1.2 / HKP 2.0-266
+- **免 root**：FPA 3.8（已实测）/ LSPatch 1.2 / HKP 2.0-266
     - ⚠️ 用 LSPatch 打补丁时**必须加 `--sigbypasslv 3`**。虎扑带网易易盾的签名校验，默认等级打出来的包会正常启动、显示主页，然后一两秒后静默退出。（已实测：这条与模块无关，不带模块的补丁包同样会退出）
 - 作用域：虎扑 `com.hupu.games`（基于 8.2.63 编写并实测通过）
 
@@ -47,6 +47,15 @@
 
 在框架里选择虎扑 → 勾选 **HupuX** → 打补丁并安装。
 注意免 root 方式需要先卸载原版虎扑（签名不同），**会丢失登录数据**。
+
+### 免 root 实测记录
+
+**FPA 3.8**（vivo V2425A / Android 16，无 root）
+
+- 默认配置即可：Hook 核心 `LSPlant`、过签方案 `seccomp`。`seccomp` 能绕过易盾的签名校验，应用不会闪退。
+- FPA **不把模块打进 APK**，而是在运行时从「已安装的模块 APK」加载。所以升级模块只要重装模块 APK，**不需要重新 patch 虎扑**。
+- FPA 会按 `module.prop` 的 `targetApiVersion` 自动选择兼容层（本模块声明 102，日志里可见 `wrappers=[xp102]`）。
+- `getRemotePreferences` 可用，模块里的开关能正常读到。
 
 ## 使用
 
@@ -126,7 +135,12 @@ gradle assembleDebug
 
 虎扑使用**网易易盾**加固，`classes.dex` 只是一个 30 个类的小壳，真实代码（21 段 dex、82282 个类）是运行期由壳解密后交给 ClassLoader 的。因此在 `onPackageReady` 里直接 `Class.forName` 必然 `ClassNotFoundException`。
 
-`LazyHookInstaller` 的做法是**挂钩 `ClassLoader#loadClass`**：谁把目标类加载出来，就在那一刻拿到 `Class` 对象装 Hook；另配一个每秒一次、最多一分钟的兜底重试。这样既兼容"类加载晚于 onPackageReady"，也兼容"壳用自己的 ClassLoader"。
+`LazyHookInstaller` 的做法是**定时重试解析**：每秒一次、最多一分钟，用应用自己的 ClassLoader 去 `Class.forName`，谁先出现就给谁装 Hook。
+
+> 早期版本还额外挂钩了 `ClassLoader#loadClass`，后来去掉了，原因有两条：
+> **一是在 FPA(LSPlant) 上挂钩它会让虎扑卡死在启动阶段**（主线程停在 Hook 安装之后，进程活着但没有窗口）；
+> 二是回看日志发现它**从未真正捕获过目标类**——Java 层的 `loadClass` 只覆盖显式调用，
+> ART 在链接/校验阶段隐式解析类时不会走它，实际干活的一直是定时重试。
 
 ### 2. 跨进程的拦截日志
 
