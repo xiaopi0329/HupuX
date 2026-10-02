@@ -4,8 +4,6 @@ import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import androidx.annotation.NonNull;
-
 import java.lang.reflect.Method;
 
 import io.github.libxposed.api.XposedInterface;
@@ -28,7 +26,7 @@ import io.github.libxposed.api.XposedModuleInterface;
 public final class HupuModule extends XposedModule {
 
     @Override
-    public void onModuleLoaded(@NonNull ModuleLoadedParam param) {
+    public void onModuleLoaded(ModuleLoadedParam param) {
         Config.i("模块已注入 process=" + param.getProcessName()
                 + " systemServer=" + param.isSystemServer()
                 + " framework=" + getFrameworkName() + " " + getFrameworkVersion()
@@ -37,7 +35,7 @@ public final class HupuModule extends XposedModule {
     }
 
     @Override
-    public void onPackageReady(@NonNull PackageReadyParam param) {
+    public void onPackageReady(PackageReadyParam param) {
         if (!Config.TARGET_PACKAGE.equals(param.getPackageName())) {
             // scope.list 只写了虎扑，正常不会走到这里，留个保险。
             return;

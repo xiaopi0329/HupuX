@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- 深色模式下状态栏是深色背景，图标要转成浅色 -->
-    <style name="Theme.HupuX" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/brand</item>
-        <item name="colorAccent">@color/brand</item>
+    <!-- 深色模式：换用深色 Material 主题，状态栏图标转成浅色 -->
+    <style name="Theme.HupuX" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:colorPrimary">@color/brand</item>
+        <item name="android:colorAccent">@color/brand</item>
         <item name="android:windowBackground">@color/page_bg</item>
         <item name="android:statusBarColor">@color/page_bg</item>
         <item name="android:windowLightStatusBar">false</item>

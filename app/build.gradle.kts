@@ -46,7 +46,10 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            // 开启代码压缩 + 资源收缩：模块里只有几个类，但 R8 会顺手把
+            // 未使用的资源条目也去掉，包体积能再降一截。
+            isMinifyEnabled = true
+            isShrinkResources = true
             if (releaseKeystore.exists()) {
                 signingConfig = signingConfigs.getByName("release")
             }
@@ -75,19 +78,10 @@ android {
 }
 
 dependencies {
-    // libxposed 现代 Xposed API：运行期由框架提供，编译期 compileOnly 即可
+    // 唯一的依赖。libxposed API 运行期由框架提供，编译期 compileOnly 即可。
+    //
+    // 刻意不引入 androidx / appcompat：界面只用系统控件就够（Activity + Switch），
+    // 而 appcompat 会连带 androidx 全家桶和 kotlin-stdlib，把 dex 从几十 KB
+    // 撑到 5MB 以上 —— 那是这个模块原本 2.5MB 体积的主要来源。
     compileOnly("io.github.libxposed:api:102.0.0")
-
-    // 模块自身的设置界面（同时提供编译期需要的 androidx.annotation）
-    implementation("androidx.appcompat:appcompat:1.7.0")
-}
-
-// kotlin-stdlib 1.8+ 已把 jdk7/jdk8 合并进主包，这里对齐版本，
-// 否则 appcompat 传递进来的 kotlin-stdlib-jdk8 会和 kotlin-stdlib 报重复类。
-configurations.all {
-    resolutionStrategy {
-        force("org.jetbrains.kotlin:kotlin-stdlib:1.8.22")
-        force("org.jetbrains.kotlin:kotlin-stdlib-jdk7:1.8.22")
-        force("org.jetbrains.kotlin:kotlin-stdlib-jdk8:1.8.22")
-    }
 }

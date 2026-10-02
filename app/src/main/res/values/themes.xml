@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!--
-      NoActionBar：模块页自带标题，用 ActionBar 会让「HupuX」出现两遍。
-      windowBackground 跟随日/夜色，避免打开时闪白。
+      直接用系统的 Material 主题，不依赖 AppCompat。
+      模块界面只有系统控件（Activity / Switch / ListView），用 AppCompat 会连带
+      把 androidx 全家桶和 kotlin-stdlib 打进包里，dex 从几十 KB 涨到 5MB 以上。
+      日/夜色通过 values-night 覆盖，不靠 AppCompat 的 DayNight。
     -->
-    <style name="Theme.HupuX" parent="Theme.AppCompat.DayNight.NoActionBar">
-        <item name="colorPrimary">@color/brand</item>
-        <item name="colorAccent">@color/brand</item>
+    <style name="Theme.HupuX" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:colorPrimary">@color/brand</item>
+        <item name="android:colorAccent">@color/brand</item>
         <item name="android:windowBackground">@color/page_bg</item>
         <item name="android:statusBarColor">@color/page_bg</item>
         <item name="android:windowLightStatusBar">true</item>

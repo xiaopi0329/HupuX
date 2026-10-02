@@ -1,5 +1,6 @@
 package com.hupux.xpnb;
 
+import android.app.Activity;
 import android.content.SharedPreferences;
 import android.content.ComponentName;
 import android.content.Intent;
@@ -11,12 +12,9 @@ import android.view.Gravity;
 import android.view.View;
 import android.widget.CompoundButton;
 import android.widget.LinearLayout;
+import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
-
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.appcompat.widget.SwitchCompat;
 
 /**
  * 模块设置界面。
@@ -28,7 +26,7 @@ import androidx.appcompat.widget.SwitchCompat;
  * <p>开关行不写死在 XML 里：条目结构完全一致、数量又多，这里按数据表生成，
  * 增删一项只改一处，也避免上百行重复布局。</p>
  */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends Activity {
 
     /** 一条设置项：存储 key + 标题 + 说明 + 默认值。 */
     private static final class Item {
@@ -73,7 +71,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String LAUNCHER_ALIAS_SUFFIX = ".LauncherAlias";
 
     @Override
-    protected void onCreate(@Nullable Bundle savedInstanceState) {
+    protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
@@ -148,7 +146,7 @@ public class MainActivity extends AppCompatActivity {
         texts.addView(title);
         texts.addView(desc);
 
-        final SwitchCompat toggle = new SwitchCompat(this);
+        final Switch toggle = new Switch(this);
         toggle.setChecked(isLauncherHidden());
         desc.setText(isLauncherHidden()
                 ? R.string.item_hide_icon_desc_hidden : R.string.item_hide_icon_desc);
@@ -254,7 +252,7 @@ public class MainActivity extends AppCompatActivity {
         texts.addView(title);
         texts.addView(desc);
 
-        final SwitchCompat sw = new SwitchCompat(this);
+        final Switch sw = new Switch(this);
         sw.setChecked(prefs.getBoolean(item.key, item.def));
         sw.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             @Override

@@ -96,6 +96,19 @@ gradle assembleDebug
 `versionCode` 用「距 1970 年的分钟数」（12 位时间戳超过 int 上限，塞不进 versionCode），
 既单调递增、又与 versionName 一样精确到分钟。
 
+## 体积
+
+release 包约 **54 KB**（早期版本 2.5 MB）。主要做了三件事：
+
+| 措施 | 效果 |
+|---|---|
+| 去掉 `androidx.appcompat` | dex 从 5.6 MB 降到几十 KB。界面只用系统控件（`Activity` / `Switch` / `ListView`）就够，appcompat 会连带 androidx 全家桶和 kotlin-stdlib |
+| release 开启 R8 + 资源收缩 | 去掉未使用的代码与资源条目 |
+| 图标由 PNG 换成有损 WebP(q92) | 77.6 KB → 18.2 KB，192px 下肉眼无差别 |
+
+模块本身只有 15 个类、无第三方运行时依赖，唯一依赖 libxposed API 还是 `compileOnly`
+（运行期由框架提供），所以压到这个体积是合理的。
+
 ## 目录结构
 
 ```
