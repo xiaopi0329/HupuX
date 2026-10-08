@@ -1,0 +1,76 @@
+--------- beginning of main
+10-03 03:21:12.623 11986 11986 I HupuX   : 模块已注入 process=com.hupu.games systemServer=false framework=LSPosed 2.2.0 api=102 target=com.hupu.games
+10-03 03:21:12.850 11986 11986 I HupuX   : 开始安装 Hook firstPackage=true | 开屏=true SDK初始化拦截=true 信息流=true 浮窗=true 视图兜底=true 探针=false
+10-03 03:21:12.851 11986 11986 I HupuX   : [延迟安装] OK 已挂钩 ClassLoader#loadClass(java.lang.String, boolean)
+10-03 03:21:12.851 11986 11986 I HupuX   : [延迟安装] OK 已挂钩 ClassLoader#loadClass(java.lang.String)
+10-03 03:21:12.852 11986 11986 I HupuX   : [视图兜底] OK 已 hook android.app.Activity#onResume
+10-03 03:21:12.852 11986 11986 I HupuX   : [探针] 未开启，跳过
+10-03 03:21:12.852 11986 11986 I HupuX   : 规则登记完成，等待目标类加载（当前已成功 1 个方法）
+10-03 03:21:13.595 12240 12240 I HupuX   : 模块已注入 process=com.hupu.games:pushcore systemServer=false framework=LSPosed 2.2.0 api=102 target=com.hupu.games
+10-03 03:21:13.851 11986 11986 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_boot.HpSplashAd via dalvik.system.PathClassLoader
+10-03 03:21:13.852 11986 11986 I HupuX   : [开屏] OK 已 hook com.hupu.adver_boot.HpSplashAd#show（1 个重载）
+10-03 03:21:13.852 11986 11986 I HupuX   : [延迟安装] 已为 com.hupu.adver_boot.HpSplashAd 安装 1 个方法
+10-03 03:21:13.852 11986 11986 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.games.main.splash.SplashFragment via dalvik.system.PathClassLoader
+10-03 03:21:13.853 11986 11986 I HupuX   : [开屏] OK 已 hook com.hupu.games.main.splash.SplashFragment#showSplashAd（1 个重载）
+10-03 03:21:13.853 11986 11986 I HupuX   : [开屏] OK 已 hook com.hupu.games.main.splash.SplashFragment#showSplashVideo（1 个重载）
+10-03 03:21:13.853 11986 11986 I HupuX   : [延迟安装] 已为 com.hupu.games.main.splash.SplashFragment 安装 2 个方法
+10-03 03:21:13.853 11986 11986 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_base.sdk.TTSdkManager$Companion via dalvik.system.PathClassLoader
+10-03 03:21:13.853 11986 11986 I HupuX   : [SDK初始化] OK 已 hook com.hupu.adver_base.sdk.TTSdkManager$Companion#initSdk（1 个重载）
+10-03 03:21:13.853 11986 11986 I HupuX   : [延迟安装] 已为 com.hupu.adver_base.sdk.TTSdkManager$Companion 安装 1 个方法
+10-03 03:21:13.853 11986 11986 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_base.sdk.NoahSdkManager$Companion via dalvik.system.PathClassLoader
+10-03 03:21:13.853 11986 11986 I HupuX   : [SDK初始化] OK 已 hook com.hupu.adver_base.sdk.NoahSdkManager$Companion#initSdk（1 个重载）
+10-03 03:21:13.853 11986 11986 I HupuX   : [延迟安装] 已为 com.hupu.adver_base.sdk.NoahSdkManager$Companion 安装 1 个方法
+10-03 03:21:13.853 11986 11986 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_boot.SplashAdStarter via dalvik.system.PathClassLoader
+10-03 03:21:13.854 11986 11986 I HupuX   : [SDK初始化] OK 已 hook com.hupu.adver_boot.SplashAdStarter#init（1 个重载）
+10-03 03:21:13.854 11986 11986 I HupuX   : [延迟安装] 已为 com.hupu.adver_boot.SplashAdStarter 安装 1 个方法
+10-03 03:21:13.854 11986 11986 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_feed.HpFeedAd via dalvik.system.PathClassLoader
+10-03 03:21:13.854 11986 11986 I HupuX   : [信息流] OK 已 hook com.hupu.adver_feed.HpFeedAd#canLoadAd（1 个重载）
+10-03 03:21:13.855 11986 11986 I HupuX   : [信息流] OK 已 hook com.hupu.adver_feed.HpFeedAd#loadItemAd（1 个重载）
+10-03 03:21:13.855 11986 11986 I HupuX   : [延迟安装] 已为 com.hupu.adver_feed.HpFeedAd 安装 2 个方法
+10-03 03:21:13.855 11986 11986 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_feed.core.HpFeedSdkAd via dalvik.system.PathClassLoader
+10-03 03:21:13.855 11986 11986 I HupuX   : [信息流] OK 已 hook com.hupu.adver_feed.core.HpFeedSdkAd#process（1 个重载）
+10-03 03:21:13.855 11986 11986 I HupuX   : [延迟安装] 已为 com.hupu.adver_feed.core.HpFeedSdkAd 安装 1 个方法
+10-03 03:21:13.855 11986 11986 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_float.HpAdFloatCore via dalvik.system.PathClassLoader
+10-03 03:21:13.855 11986 11986 I HupuX   : [浮窗] OK 已 hook com.hupu.adver_float.HpAdFloatCore#loadFromNet（1 个重载）
+10-03 03:21:13.855 11986 11986 I HupuX   : [浮窗] OK 已 hook com.hupu.adver_float.HpAdFloatCore#loadSuccess（1 个重载）
+10-03 03:21:13.855 11986 11986 I HupuX   : [延迟安装] 已为 com.hupu.adver_float.HpAdFloatCore 安装 2 个方法
+10-03 03:21:13.855 11986 11986 I HupuX   : [延迟安装] 全部目标类已处理，共 8 个
+10-03 03:21:13.869 12240 12240 I HupuX   : 开始安装 Hook firstPackage=true | 开屏=true SDK初始化拦截=true 信息流=true 浮窗=true 视图兜底=true 探针=false
+10-03 03:21:13.870 12240 12240 I HupuX   : [延迟安装] OK 已挂钩 ClassLoader#loadClass(java.lang.String, boolean)
+10-03 03:21:13.871 12240 12240 I HupuX   : [延迟安装] OK 已挂钩 ClassLoader#loadClass(java.lang.String)
+10-03 03:21:13.871 12240 12240 I HupuX   : [视图兜底] OK 已 hook android.app.Activity#onResume
+10-03 03:21:13.871 12240 12240 I HupuX   : [探针] 未开启，跳过
+10-03 03:21:13.871 12240 12240 I HupuX   : 规则登记完成，等待目标类加载（当前已成功 1 个方法）
+10-03 03:21:14.871 12240 12240 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_boot.HpSplashAd via dalvik.system.PathClassLoader
+10-03 03:21:14.872 12240 12240 I HupuX   : [开屏] OK 已 hook com.hupu.adver_boot.HpSplashAd#show（1 个重载）
+10-03 03:21:14.872 12240 12240 I HupuX   : [延迟安装] 已为 com.hupu.adver_boot.HpSplashAd 安装 1 个方法
+10-03 03:21:14.872 12240 12240 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.games.main.splash.SplashFragment via dalvik.system.PathClassLoader
+10-03 03:21:14.873 12240 12240 I HupuX   : [开屏] OK 已 hook com.hupu.games.main.splash.SplashFragment#showSplashAd（1 个重载）
+10-03 03:21:14.873 12240 12240 I HupuX   : [开屏] OK 已 hook com.hupu.games.main.splash.SplashFragment#showSplashVideo（1 个重载）
+10-03 03:21:14.873 12240 12240 I HupuX   : [延迟安装] 已为 com.hupu.games.main.splash.SplashFragment 安装 2 个方法
+10-03 03:21:14.873 12240 12240 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_base.sdk.TTSdkManager$Companion via dalvik.system.PathClassLoader
+10-03 03:21:14.873 12240 12240 I HupuX   : [SDK初始化] OK 已 hook com.hupu.adver_base.sdk.TTSdkManager$Companion#initSdk（1 个重载）
+10-03 03:21:14.873 12240 12240 I HupuX   : [延迟安装] 已为 com.hupu.adver_base.sdk.TTSdkManager$Companion 安装 1 个方法
+10-03 03:21:14.873 12240 12240 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_base.sdk.NoahSdkManager$Companion via dalvik.system.PathClassLoader
+10-03 03:21:14.873 12240 12240 I HupuX   : [SDK初始化] OK 已 hook com.hupu.adver_base.sdk.NoahSdkManager$Companion#initSdk（1 个重载）
+10-03 03:21:14.873 12240 12240 I HupuX   : [延迟安装] 已为 com.hupu.adver_base.sdk.NoahSdkManager$Companion 安装 1 个方法
+10-03 03:21:14.873 12240 12240 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_boot.SplashAdStarter via dalvik.system.PathClassLoader
+10-03 03:21:14.874 12240 12240 I HupuX   : [SDK初始化] OK 已 hook com.hupu.adver_boot.SplashAdStarter#init（1 个重载）
+10-03 03:21:14.874 12240 12240 I HupuX   : [延迟安装] 已为 com.hupu.adver_boot.SplashAdStarter 安装 1 个方法
+10-03 03:21:14.874 12240 12240 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_feed.HpFeedAd via dalvik.system.PathClassLoader
+10-03 03:21:14.874 12240 12240 I HupuX   : [信息流] OK 已 hook com.hupu.adver_feed.HpFeedAd#canLoadAd（1 个重载）
+10-03 03:21:14.875 12240 12240 I HupuX   : [信息流] OK 已 hook com.hupu.adver_feed.HpFeedAd#loadItemAd（1 个重载）
+10-03 03:21:14.875 12240 12240 I HupuX   : [延迟安装] 已为 com.hupu.adver_feed.HpFeedAd 安装 2 个方法
+10-03 03:21:14.875 12240 12240 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_feed.core.HpFeedSdkAd via dalvik.system.PathClassLoader
+10-03 03:21:14.875 12240 12240 I HupuX   : [信息流] OK 已 hook com.hupu.adver_feed.core.HpFeedSdkAd#process（1 个重载）
+10-03 03:21:14.875 12240 12240 I HupuX   : [延迟安装] 已为 com.hupu.adver_feed.core.HpFeedSdkAd 安装 1 个方法
+10-03 03:21:14.875 12240 12240 I HupuX   : [延迟安装] 兜底重试命中：com.hupu.adver_float.HpAdFloatCore via dalvik.system.PathClassLoader
+10-03 03:21:14.875 12240 12240 I HupuX   : [浮窗] OK 已 hook com.hupu.adver_float.HpAdFloatCore#loadFromNet（1 个重载）
+10-03 03:21:14.875 12240 12240 I HupuX   : [浮窗] OK 已 hook com.hupu.adver_float.HpAdFloatCore#loadSuccess（1 个重载）
+10-03 03:21:14.875 12240 12240 I HupuX   : [延迟安装] 已为 com.hupu.adver_float.HpAdFloatCore 安装 2 个方法
+10-03 03:21:14.875 12240 12240 I HupuX   : [延迟安装] 全部目标类已处理，共 8 个
+10-03 03:21:15.897 11986 11986 I HupuX   : [浮窗] 拦截 HpAdFloatCore.loadFromNet()
+10-03 03:21:15.913 11986 11986 I HupuX   : [信息流] 拦截 HpFeedAd.loadItemAd()
+10-03 03:21:15.913 11986 11986 I HupuX   : [信息流] 拦截 HpFeedAd.loadItemAd()
+10-03 03:21:15.917 11986 11986 I HupuX   : [信息流] 拦截 HpFeedAd.loadItemAd()
+10-03 03:21:15.917 11986 11986 I HupuX   : [信息流] 拦截 HpFeedAd.loadItemAd()

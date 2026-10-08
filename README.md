@@ -27,6 +27,15 @@
 
 <img src="docs/screenshots/log.png" width="320" alt="拦截日志">
 
+## 文档
+
+| 文档 | 内容 |
+|---|---|
+| [`docs/REPORT.md`](docs/REPORT.md) | 技术分析报告（主文档）：加固识别、离线脱壳原理、广告体系、Hook 点推导 |
+| [`docs/LIBXPOSED.md`](docs/LIBXPOSED.md) | libxposed 现代 Xposed API 使用笔记 |
+| [`docs/PRIOR_ART.md`](docs/PRIOR_ART.md) | 同类去广告模块 / 框架的调研与取舍 |
+| [`docs/verification-log.txt`](docs/verification-log.txt) | 真机验证记录 |
+
 ## 环境要求
 
 - Android 9 ~ 17
