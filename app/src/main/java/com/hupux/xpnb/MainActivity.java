@@ -53,6 +53,8 @@ public class MainActivity extends Activity {
                     R.string.item_block_feed, R.string.item_block_feed_desc, true),
             new Item(Config.KEY_BLOCK_FLOAT,
                     R.string.item_block_float, R.string.item_block_float_desc, true),
+            new Item(Config.KEY_BLOCK_SCENE,
+                    R.string.item_block_scene, R.string.item_block_scene_desc, true),
     };
 
     /** 兜底与调试 —— 不计入拦截统计。 */

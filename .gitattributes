@@ -1,0 +1,21 @@
+# 统一换行符：索引里一律存 LF，检出到工作区也是 LF。
+#
+# 为什么需要：仓库在 Windows 上开发，core.autocrlf=true 会把工作区的 LF 转成 CRLF，
+# 于是每次 git status 都提示 "LF will be replaced by CRLF"，一旦有人在 Linux/macOS
+# 上改同一个文件，整份文件的每一行都会变成一次变更，diff 完全没法看。
+# 显式声明 text 规则后，Git 会把任何平台的 CRLF/LF 都规范化成 LF 再入库，
+# 换行符不再进入 diff。
+* text=auto eol=lf
+
+# 二进制：不做换行符转换、不参与文本 diff
+*.apk binary
+*.so binary
+*.jar binary
+*.aar binary
+*.zip binary
+*.png binary
+*.webp binary
+*.dex binary
+
+# Gradle 的 wrapper 是 jar，必须保持二进制
+gradle/wrapper/gradle-wrapper.jar binary

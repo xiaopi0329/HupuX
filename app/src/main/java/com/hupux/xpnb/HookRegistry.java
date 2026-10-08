@@ -60,7 +60,21 @@ public final class HookRegistry {
      * @return 本次成功安装的方法数
      */
     public static synchronized int applyTo(XposedInterface api, Class<?> clazz) {
-        List<Spec> specs = SPECS.get(clazz.getName());
+        return applyTo(api, clazz, clazz.getName());
+    }
+
+    /**
+     * 给一个已经加载出来的类安装 hook，按<b>登记名</b>查表。
+     *
+     * <p>和 {@link #applyTo(XposedInterface, Class)} 的区别：真实类名未必等于登记名
+     * （加固壳会改名、挪包），这时必须显式告诉它用哪个 key 查表，
+     * 否则类拿到了也找不到规则。</p>
+     *
+     * @param registryKey 注册时用的类名
+     * @return 本次成功安装的方法数
+     */
+    public static synchronized int applyTo(XposedInterface api, Class<?> clazz, String registryKey) {
+        List<Spec> specs = SPECS.get(registryKey);
         if (specs == null) {
             return 0;
         }

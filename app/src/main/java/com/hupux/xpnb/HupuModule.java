@@ -25,6 +25,10 @@ import io.github.libxposed.api.XposedModuleInterface;
  */
 public final class HupuModule extends XposedModule {
 
+    /** 供 attachBaseContext 拿到 Context 后补装探针用（配置可能那时才读到）。 */
+    private static XposedInterface sApi;
+    private static ClassLoader sClassLoader;
+
     @Override
     public void onModuleLoaded(ModuleLoadedParam param) {
         Config.i("模块已注入 process=" + param.getProcessName()
@@ -46,7 +50,12 @@ public final class HupuModule extends XposedModule {
         try {
             SharedPreferences sp = getRemotePreferences(Config.PREFS_NAME);
             Config.load(sp);
-            remoteOk = true;
+            // FPA 3.8 上 getRemotePreferences 不抛异常，但返回的是一份**空配置**
+            // （getAll() 为空），所有 key 都读不到 → 用户改的开关全部失效、
+            // 默默退回默认值。这里把「空」显式识别出来，交给 Provider 兜底通道补救。
+            Config.remoteEmpty = sp.getAll().isEmpty();
+            Config.configSource = Config.remoteEmpty ? "default" : "remote";
+            remoteOk = !Config.remoteEmpty;
         } catch (Throwable t) {
             Config.e("读取远程配置失败，使用默认值", t);
         }
@@ -56,19 +65,26 @@ public final class HupuModule extends XposedModule {
         // 免 root 环境下出问题时不用连电脑看 logcat 也能定位。
         String frameworkInfo = "框架 " + getFrameworkName() + " " + getFrameworkVersion()
                 + " / API " + getApiVersion() + " / 模块 " + BuildConfig.VERSION_NAME
-                + (remoteOk ? "，已读到模块开关" : "，读不到模块开关，本次用默认配置");
+                + (remoteOk ? "，已读到模块开关"
+                : "，远程配置为空(FPA 已知问题)，改用 Provider 兜底");
         Config.i("[框架] " + frameworkInfo);
         AdsLog.info("框架", frameworkInfo);
+
+        // Config.loadFromProvider 依赖虎扑自己的 Context（attachBaseContext 时拿到），
+        // 那条钩子在 captureAppContext 里挂上后会顺带调用一次。
 
         Config.i("开始安装 Hook firstPackage=" + param.isFirstPackage()
                 + " | 开屏=" + Config.skipSplashAd
                 + " SDK初始化拦截=" + Config.blockAdSdkInit
                 + " 信息流=" + Config.blockFeedAd
                 + " 浮窗=" + Config.blockFloatAd
+                + " 场景广告=" + Config.blockSceneAd
                 + " 视图兜底=" + Config.viewTreeSkip
                 + " 探针=" + Config.classProbe);
 
         ClassLoader cl = param.getClassLoader();
+        sApi = this;
+        sClassLoader = cl;
 
         captureAppContext(this);
 
@@ -79,6 +95,9 @@ public final class HupuModule extends XposedModule {
         // 不能在这里直接 Class.forName：网易易盾的真实 dex 是运行期才交给 ClassLoader 的。
         AdHooks.register();
         LazyHookInstaller.install(this, cl);
+
+        // Activity#onResume 只挂一条拦截链，下面三个组件登记任务进来分发
+        ResumeHub.install(this);
         AgreementGate.install(this, moduleVersion);
         SplashSkipHelper.install(this);
         SettingsEntryInjector.install(this);
@@ -117,7 +136,16 @@ public final class HupuModule extends XposedModule {
                         // 挂在 ContextWrapper 上时会命中 Activity / Service 等，
                         // 只认 Application，确保拿到的是应用的 Context
                         if (self instanceof Application) {
-                            AdsLog.setContext((Context) self);
+                            Context ctx = (Context) self;
+                            AdsLog.setContext(ctx);
+                            // FPA 上远程配置是空的：拿到 Context 后立刻用
+                            // Provider 兜底通道把真正的开关值拉进来
+                            Config.loadFromProvider(ctx);
+                            // 探针的安装决策在 onPackageReady 时是按默认值做的，
+                            // 配置补齐后补装一次（install 自身幂等）
+                            if (sApi != null && sClassLoader != null) {
+                                ClassProbe.install(sApi, sClassLoader);
+                            }
                         }
                         return result;
                     });

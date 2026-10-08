@@ -33,6 +33,10 @@ public final class AdsLog {
     private static final Queue<String> PENDING = new ConcurrentLinkedQueue<>();
     private static final int MAX_PENDING = 200;
 
+    /** SimpleDateFormat 不是线程安全的，而记录可能来自任意线程：按线程缓存一个。 */
+    private static final ThreadLocal<SimpleDateFormat> TIME_FORMAT =
+            ThreadLocal.withInitial(() -> new SimpleDateFormat("HH:mm:ss", Locale.US));
+
     /** 模块 App 暂不可用时，隔多久重试一次把暂存的记录写出去。 */
     private static final long RETRY_DELAY_MS = 20_000L;
 
@@ -53,6 +57,11 @@ public final class AdsLog {
         if (!PENDING.isEmpty()) {
             scheduleFlush(0);
         }
+    }
+
+    /** 拿到的宿主 Context（可能为 null，模块侧只读不改）。 */
+    public static Context appContext() {
+        return appContext;
     }
 
     // ---------- 对外的记录入口 ----------
@@ -83,7 +92,7 @@ public final class AdsLog {
 
     public static void record(String feature, String detail, String result) {
         try {
-            String time = new SimpleDateFormat("HH:mm:ss", Locale.US).format(new Date());
+            String time = TIME_FORMAT.get().format(new Date());
             String line = System.currentTimeMillis() + "|" + time + "|"
                     + feature + "|" + detail + "|" + result;
             PENDING.add(line);

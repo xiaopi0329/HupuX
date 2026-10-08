@@ -21,6 +21,8 @@
     <string name="item_block_feed_desc">canLoadAd 返回 false，列表页不再插入广告卡</string>
     <string name="item_block_float">屏蔽浮窗广告</string>
     <string name="item_block_float_desc">拦截 HpAdFloatCore 的网络加载与成功回调</string>
+    <string name="item_block_scene">屏蔽横幅/弹窗/创意广告</string>
+    <string name="item_block_scene_desc">拦截横幅、弹窗、浮泡、动效、搜索图标、话题、刷新、视频贴片等广告</string>
 
     <string name="item_view_skip">视图兜底：自动点击「跳过」</string>
     <string name="item_view_skip_desc">不依赖类名，屏幕上出现「跳过」就点它</string>

@@ -3,9 +3,11 @@ package com.hupux.xpnb;
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
+import android.os.Bundle;
 
 /**
  * 接收虎扑进程里模块代码写来的拦截日志。
@@ -69,5 +71,39 @@ public class LogProvider extends ContentProvider {
     @Override
     public String getType(Uri uri) {
         return "vnd.android.cursor.dir/vnd.hupux.log";
+    }
+
+    /**
+     * 配置兜底通道：把模块 App 自己的开关值返回给虎扑进程里的模块代码。
+     *
+     * <p>为什么需要：框架的 {@code XposedInterface#getRemotePreferences} 在部分框架上
+     * （实测 FPA 3.8）返回的是一份<b>空配置</b> —— 不抛异常、但所有 key 都读不到，
+     * 于是模块默默退回默认值，用户在设置页改的开关根本不生效。
+     * 这里直接用已 exported 的 Provider {@code call} 跨进程读模块 App 的
+     * SharedPreferences，两边都是同一个文件，绝对一致。</p>
+     *
+     * <p>返回的 Bundle 里每个 key 都显式写好（含默认值），调用方按 key 取即可。</p>
+     */
+    @Override
+    public Bundle call(String method, String arg, Bundle extras) {
+        if (!"getConfig".equals(method)) {
+            return null;
+        }
+        Context ctx = getContext();
+        if (ctx == null) {
+            return null;
+        }
+        SharedPreferences sp = ctx.getSharedPreferences(Config.PREFS_NAME, Context.MODE_PRIVATE);
+        Bundle out = new Bundle();
+        out.putString(Config.KEY_CONFIG_SOURCE, "provider");
+        out.putBoolean(Config.KEY_SKIP_SPLASH, sp.getBoolean(Config.KEY_SKIP_SPLASH, true));
+        out.putBoolean(Config.KEY_BLOCK_SDK_INIT, sp.getBoolean(Config.KEY_BLOCK_SDK_INIT, true));
+        out.putBoolean(Config.KEY_BLOCK_FEED, sp.getBoolean(Config.KEY_BLOCK_FEED, true));
+        out.putBoolean(Config.KEY_BLOCK_FLOAT, sp.getBoolean(Config.KEY_BLOCK_FLOAT, true));
+        out.putBoolean(Config.KEY_BLOCK_SCENE, sp.getBoolean(Config.KEY_BLOCK_SCENE, true));
+        out.putBoolean(Config.KEY_VIEW_TREE_SKIP, sp.getBoolean(Config.KEY_VIEW_TREE_SKIP, true));
+        out.putBoolean(Config.KEY_CLASS_PROBE, sp.getBoolean(Config.KEY_CLASS_PROBE, false));
+        out.putBoolean(Config.KEY_VERBOSE, sp.getBoolean(Config.KEY_VERBOSE, true));
+        return out;
     }
 }

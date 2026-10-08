@@ -7,7 +7,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.TextView;
 
-import java.lang.reflect.Method;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import io.github.libxposed.api.XposedInterface;
@@ -40,34 +39,26 @@ public final class SplashSkipHelper {
 
     private static final AtomicInteger HANDLED = new AtomicInteger();
 
+    /**
+     * 每个 Activity 的「跳过」是否已点过。点过就不再对该页面做剩余的延迟扫描 ——
+     * 否则一次 onResume 会排 6 次全树遍历，最多叠到 48 次，还会重复点击。
+     * 用 WeakHashMap：页面销毁后条目跟着回收，不持有 Activity 引用。
+     */
+    private static final java.util.Map<Activity, Boolean> CLICKED =
+            java.util.Collections.synchronizedMap(new java.util.WeakHashMap<>());
+
     public static void install(XposedInterface api) {
-        try {
-            Method onResume = Activity.class.getDeclaredMethod("onResume");
-            api.hook(onResume)
-                    .setPriority(XposedInterface.PRIORITY_DEFAULT)
-                    .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
-                    .intercept(chain -> {
-                        Object result = chain.proceed();
-                        if (Config.viewTreeSkip) {
-                            Object self = chain.getThisObject();
-                            if (self instanceof Activity) {
-                                try {
-                                    schedule((Activity) self);
-                                } catch (Throwable ignored) {
-                                }
-                            }
-                        }
-                        return result;
-                    });
-            HookUtil.installedCount++;
-            Config.i("[视图兜底] OK 已 hook android.app.Activity#onResume");
-        } catch (Throwable t) {
-            Config.e("[视图兜底] hook Activity#onResume 失败", t);
-        }
+        // 不再自己 hook Activity#onResume，登记进 ResumeHub 统一分发
+        ResumeHub.add(activity -> {
+            if (Config.viewTreeSkip) {
+                schedule(activity);
+            }
+        });
+        Config.i("[视图兜底] OK 已登记到 ResumeHub");
     }
 
     private static void schedule(final Activity activity) {
-        if (HANDLED.get() >= MAX_HANDLED_RESUMES) {
+        if (CLICKED.containsKey(activity) || HANDLED.get() >= MAX_HANDLED_RESUMES) {
             return;
         }
         HANDLED.incrementAndGet();
@@ -81,6 +72,9 @@ public final class SplashSkipHelper {
             if (!Config.viewTreeSkip || activity.isFinishing() || activity.isDestroyed()) {
                 return;
             }
+            if (Boolean.TRUE.equals(CLICKED.get(activity))) {
+                return; // 这个页面已经点过「跳过」，后面的延迟扫描直接跳过
+            }
             if (activity.getWindow() == null) {
                 return;
             }
@@ -93,6 +87,7 @@ public final class SplashSkipHelper {
                 Config.i("[视图兜底] 命中「跳过」控件 delay=" + delay + "ms"
                         + " view=" + describe(hit)
                         + " activity=" + activity.getClass().getName());
+                CLICKED.put(activity, Boolean.TRUE);
                 click(hit);
             }
         } catch (Throwable t) {

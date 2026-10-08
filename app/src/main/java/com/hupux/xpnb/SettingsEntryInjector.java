@@ -10,8 +10,6 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
-import java.lang.reflect.Method;
-
 import io.github.libxposed.api.XposedInterface;
 
 /**
@@ -53,34 +51,17 @@ public final class SettingsEntryInjector {
     }
 
     public static void install(XposedInterface api) {
-        try {
-            Method onResume = Activity.class.getDeclaredMethod("onResume");
-            api.hook(onResume)
-                    .setPriority(XposedInterface.PRIORITY_DEFAULT)
-                    .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
-                    .intercept(chain -> {
-                        Object result = chain.proceed();
-                        Object self = chain.getThisObject();
-                        if (self instanceof Activity) {
-                            Activity activity = (Activity) self;
-                            // 兜底：万一 Application#attachBaseContext 没挂上，
-                            // 这里也能把 Context 交给日志上报用
-                            AdsLog.setContext(activity.getApplicationContext());
-                            if (SETTINGS_ACTIVITY.equals(activity.getClass().getName())) {
-                                try {
-                                    inject(activity);
-                                } catch (Throwable t) {
-                                    Config.e("[设置入口] 注入失败", t);
-                                }
-                            }
-                        }
-                        return result;
-                    });
-            HookUtil.installedCount++;
-            Config.i("[设置入口] OK 已挂钩 " + SETTINGS_ACTIVITY + " 的 onResume");
-        } catch (Throwable t) {
-            Config.e("[设置入口] 挂钩失败", t);
-        }
+        // 不再自己 hook Activity#onResume，登记进 ResumeHub 统一分发
+        ResumeHub.add(self -> {
+            if (SETTINGS_ACTIVITY.equals(self.getClass().getName())) {
+                try {
+                    inject(self);
+                } catch (Throwable t) {
+                    Config.e("[设置入口] 注入失败", t);
+                }
+            }
+        });
+        Config.i("[设置入口] OK 已登记到 ResumeHub（" + SETTINGS_ACTIVITY + "）");
     }
 
     private static void inject(Activity activity) {

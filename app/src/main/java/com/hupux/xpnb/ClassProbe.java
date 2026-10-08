@@ -23,16 +23,23 @@ public final class ClassProbe {
     private static final Set<String> SEEN = ConcurrentHashMap.newKeySet();
     private static final int MAX_LOG = 5000;
 
+    /** 已安装过（幂等）：配置补齐后可以再调一次，装上就直接返回。 */
+    private static volatile boolean installed;
+
     /** 只关心虎扑自己的业务类，过滤 androidx / kotlin 之类的噪音。 */
     private static final String[] INTEREST_PREFIXES = {
             "com.hupu.adver", "com.hupu.games.main.splash"
     };
 
     public static void install(XposedInterface api, ClassLoader cl) {
+        if (installed) {
+            return;
+        }
         if (!Config.classProbe) {
             Config.v("[探针] 未开启，跳过");
             return;
         }
+        installed = true;
         try {
             Method loadClass = ClassLoader.class.getDeclaredMethod(
                     "loadClass", String.class, boolean.class);

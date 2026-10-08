@@ -6,8 +6,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.view.KeyEvent;
 
-import java.lang.reflect.Method;
-
 import io.github.libxposed.api.XposedInterface;
 
 /**
@@ -51,27 +49,16 @@ public final class AgreementGate {
     }
 
     public static void install(XposedInterface api, final String moduleVersion) {
-        try {
-            Method onResume = Activity.class.getDeclaredMethod("onResume");
-            api.hook(onResume)
-                    .setPriority(XposedInterface.PRIORITY_DEFAULT)
-                    .setExceptionMode(XposedInterface.ExceptionMode.PROTECTIVE)
-                    .intercept(chain -> {
-                        Object result = chain.proceed();
-                        Object self = chain.getThisObject();
-                        if (self instanceof Activity) {
-                            try {
-                                maybePrompt((Activity) self, moduleVersion);
-                            } catch (Throwable t) {
-                                Config.e("[协议] 处理失败", t);
-                            }
-                        }
-                        return result;
-                    });
-            Config.i("[协议] OK 已挂钩 Activity#onResume");
-        } catch (Throwable t) {
-            Config.e("[协议] 挂钩失败", t);
-        }
+        // 不再自己 hook Activity#onResume（热路径上一个方法只挂一条拦截链），
+        // 改为把任务登记进 ResumeHub 统一分发。
+        ResumeHub.add(activity -> {
+            try {
+                maybePrompt(activity, moduleVersion);
+            } catch (Throwable t) {
+                Config.e("[协议] 处理失败", t);
+            }
+        });
+        Config.i("[协议] OK 已登记到 ResumeHub");
     }
 
     private static void maybePrompt(Activity activity, String moduleVersion) {

@@ -26,6 +26,8 @@ public final class AdHooks {
         registerSdkInit();
         registerFeed();
         registerFloat();
+        registerScene();
+        registerCreative();
     }
 
     private static void registerSplash() {
@@ -42,9 +44,26 @@ public final class AdHooks {
                 AdsLog.allowed(f, "HpSplashAd#show");
                 return chain.proceed();
             }
-            Config.v("[" + f + "] 拦截 HpSplashAd.show() this="
-                    + HookUtil.shortName(chain.getThisObject()));
+            if (Config.verbose) {
+                Config.v("[" + f + "] 拦截 HpSplashAd.show() this="
+                        + HookUtil.shortName(chain.getThisObject()));
+            }
             AdsLog.blocked(f, "HpSplashAd#show");
+            notifyAdDismissed(chain.getThisObject());
+            return null;
+        }, f);
+
+        // 缓存路径：二次启动时开屏走 showFromCache 而不是 show，不拦就绕过去了。
+        // 处理方式与 show 完全一致：拦截 + 补报「广告已关闭」。
+        HookRegistry.register("com.hupu.adver_boot.HpSplashAd", "showFromCache", chain -> {
+            if (!Config.skipSplashAd) {
+                AdsLog.allowed(f, "HpSplashAd#showFromCache");
+                return chain.proceed();
+            }
+            if (Config.verbose) {
+                Config.v("[" + f + "] 拦截 HpSplashAd.showFromCache()");
+            }
+            AdsLog.blocked(f, "HpSplashAd#showFromCache");
             notifyAdDismissed(chain.getThisObject());
             return null;
         }, f);
@@ -156,6 +175,19 @@ public final class AdHooks {
             AdsLog.blocked(f, "SplashAdStarter#init");
             return null;
         }, f);
+
+        // 优量汇（腾讯 GDT）是第三家 SDK，漏了它 GDT 的开屏/信息流照样能拉。
+        // 注意 YlhSdkManager 没有 $Companion —— initSdk 是类本身的实例方法
+        // （方法表：initSdk(android/app/Application)V virtual）。
+        HookRegistry.register("com.hupu.adver_base.sdk.YlhSdkManager", "initSdk", chain -> {
+            if (!Config.blockAdSdkInit) {
+                AdsLog.allowed(f, "YlhSdkManager#initSdk");
+                return chain.proceed();
+            }
+            Config.v("[" + f + "] 拦截 YlhSdkManager.initSdk() 优量汇/GDT");
+            AdsLog.blocked(f, "YlhSdkManager#initSdk（优量汇）");
+            return null;
+        }, f);
     }
 
     private static void registerFeed() {
@@ -173,15 +205,22 @@ public final class AdHooks {
         }, f);
 
         // 已经拉回来的广告条目，插入列表前再拦一道。
+        // 这是高频路径（一次刷新可触发多次），关掉详细日志时不再做字符串拼接。
         HookRegistry.register("com.hupu.adver_feed.HpFeedAd", "loadItemAd", chain -> {
             if (!Config.blockFeedAd) {
                 AdsLog.allowed(f, "HpFeedAd#loadItemAd");
                 return chain.proceed();
             }
-            Config.v("[" + f + "] 拦截 HpFeedAd.loadItemAd()");
+            if (Config.verbose) {
+                Config.v("[" + f + "] 拦截 HpFeedAd.loadItemAd()");
+            }
             AdsLog.blocked(f, "HpFeedAd#loadItemAd");
             return null;
         }, f);
+
+        // 单条广告的加载器（loadItemAd 的下游，更深处再拦一道）
+        sceneBlockOn("com.hupu.adver_feed.HpFeedAdItem", "loadAd", f, "HpFeedAdItem#loadAd",
+                () -> Config.blockFeedAd);
 
         // SDK 侧真正加载广告的过程，双保险。
         HookRegistry.register("com.hupu.adver_feed.core.HpFeedSdkAd", "process", chain -> {
@@ -217,5 +256,106 @@ public final class AdHooks {
             AdsLog.blocked(f, "HpAdFloatCore#loadSuccess");
             return null;
         }, f);
+    }
+
+    /**
+     * 场景广告：横幅 / 弹窗 / 浮泡（popup）/ 动效。
+     *
+     * <p>这几个场景复用浮窗已真机验证过的「loadFromNet + loadSuccess 双拦」模式：
+     * 拦掉网络请求，再拦掉成功回调，缓存数据也进不来。横幅另有缓存入口
+     * {@code loadFromData}，一并拦掉。全部是 void 方法，返回 null 即「原方法不执行」。</p>
+     *
+     * <p>类名与方法名均已对照脱壳后的方法表（analysis/all-methods.txt）逐条核验。
+     * 刻意不拦 {@code loadData()} 这类有返回值的链式入口 —— 拦掉返回 null 会让调用方 NPE。</p>
+     */
+    private static void registerScene() {
+        final String f = "场景广告";
+
+        // 横幅（单图）：lonely = 单个横幅
+        sceneBlock("com.hupu.adver_banner.lonely.HpBannerAdCore", "loadFromNet", f, "HpBannerAdCore#loadFromNet");
+        sceneBlock("com.hupu.adver_banner.lonely.HpBannerAdCore", "loadFromData", f, "HpBannerAdCore#loadFromData");
+        sceneBlock("com.hupu.adver_banner.lonely.HpBannerAdCore", "loadSuccess", f, "HpBannerAdCore#loadSuccess");
+        // 横幅（轮播）：mul = 多图轮播
+        sceneBlock("com.hupu.adver_banner.mul.HpMulBannerAdCore", "loadFromNet", f, "HpMulBannerAdCore#loadFromNet");
+        sceneBlock("com.hupu.adver_banner.mul.HpMulBannerAdCore", "loadSuccess", f, "HpMulBannerAdCore#loadSuccess");
+        // 弹窗广告
+        sceneBlock("com.hupu.adver_dialog.HpAdDialogCore", "loadFromNet", f, "HpAdDialogCore#loadFromNet");
+        sceneBlock("com.hupu.adver_dialog.HpAdDialogCore", "loadSuccess", f, "HpAdDialogCore#loadSuccess");
+        // 浮泡（页面内小浮窗）
+        sceneBlock("com.hupu.adver_popup.HpAdPopupCore", "loadFromNet", f, "HpAdPopupCore#loadFromNet");
+        sceneBlock("com.hupu.adver_popup.HpAdPopupCore", "loadSuccess", f, "HpAdPopupCore#loadSuccess");
+        // 动效广告（图标动画等）
+        sceneBlock("com.hupu.adver_animation.animation.HpAnimationAd", "loadFromNet", f, "HpAnimationAd#loadFromNet");
+        sceneBlock("com.hupu.adver_animation.animation.HpAnimationAd", "loadSuccess", f, "HpAnimationAd#loadSuccess");
+    }
+
+    /** 场景广告的统一登记：开关开着就拦，关了就放行并记录。 */
+    private static void sceneBlock(String className, String methodName,
+                                   String feature, String label) {
+        sceneBlockOn(className, methodName, feature, label, () -> Config.blockSceneAd);
+    }
+
+    /** 同 {@link #sceneBlock}，但开关由调用方给（比如信息流深处那道用 blockFeedAd）。 */
+    private static void sceneBlockOn(String className, String methodName,
+                                     String feature, String label,
+                                     java.util.function.BooleanSupplier enabled) {
+        HookRegistry.register(className, methodName, chain -> {
+            if (!enabled.getAsBoolean()) {
+                AdsLog.allowed(feature, label);
+                return chain.proceed();
+            }
+            if (Config.verbose) {
+                Config.v("[" + feature + "] 拦截 " + label);
+            }
+            AdsLog.blocked(feature, label);
+            return null;
+        }, feature);
+    }
+
+    /**
+     * 创意广告族（{@code com.hupu.adver_creative.*}）—— 用运行时类加载探针对照
+     * 脱壳方法表扫出来的**整片未覆盖广告面**，共 7 个场景：
+     *
+     * <ul>
+     *     <li>搜索框右侧图标广告（search）</li>
+     *     <li>话题页广告（topic）</li>
+     *     <li>下拉刷新广告（refresh，含 SDK 渲染兜底）</li>
+     *     <li>视频贴片锚点/抽帧广告（videoanchor / videodraw）</li>
+     *     <li>来电样式视频弹窗（videoCall）</li>
+     *     <li>「我的」页广告（mine）</li>
+     *     <li>穿山甲商城位（csjmall）</li>
+     * </ul>
+     *
+     * <p>全部挂在「场景广告」开关下，与横幅/弹窗/浮泡/动效同一档。
+     * 方法签名已逐条对照 all-methods.txt：均为 void，返回 null 即「原方法不执行」；
+     * {@code loadData()} 这类有返回值的链式入口刻意不拦（返回 null 会让调用方 NPE）。</p>
+     */
+    private static void registerCreative() {
+        final String f = "场景广告";
+
+        // 搜索框右侧图标广告
+        sceneBlock("com.hupu.adver_creative.search.HpSearchIconAdCore", "loadFromNet", f, "HpSearchIconAdCore#loadFromNet");
+        sceneBlock("com.hupu.adver_creative.search.HpSearchIconAdCore", "loadSuccess", f, "HpSearchIconAdCore#loadSuccess");
+        // 话题页广告
+        sceneBlock("com.hupu.adver_creative.topic.HpTopicAd", "loadFromNet", f, "HpTopicAd#loadFromNet");
+        sceneBlock("com.hupu.adver_creative.topic.HpTopicAd", "loadSuccess", f, "HpTopicAd#loadSuccess");
+        // 下拉刷新广告
+        sceneBlock("com.hupu.adver_creative.refresh.HpAdRefresh", "loadFromNet", f, "HpAdRefresh#loadFromNet");
+        sceneBlock("com.hupu.adver_creative.refresh.HpAdRefresh", "loadSuccess", f, "HpAdRefresh#loadSuccess");
+        sceneBlock("com.hupu.adver_creative.refresh.core.HpRefreshSdkAd", "process", f, "HpRefreshSdkAd#process");
+        // 视频锚点广告（贴片挂角）
+        sceneBlock("com.hupu.adver_creative.videoanchor.HpVideoAnchorItemAd", "loadAd", f, "HpVideoAnchorItemAd#loadAd");
+        // 视频抽帧广告
+        sceneBlock("com.hupu.adver_creative.videodraw.HpVideoDrawItemAd", "loadAd", f, "HpVideoDrawItemAd#loadAd");
+        // 来电样式视频弹窗
+        sceneBlock("com.hupu.adver_creative.videoCall.HpAdVideoCallCore", "loadFromNet", f, "HpAdVideoCallCore#loadFromNet");
+        sceneBlock("com.hupu.adver_creative.videoCall.HpAdVideoCallCore", "loadSuccess", f, "HpAdVideoCallCore#loadSuccess");
+        sceneBlock("com.hupu.adver_creative.videoCall.HpAdVideoCallCore", "showDialog", f, "HpAdVideoCallCore#showDialog");
+        // 「我的」页广告
+        sceneBlock("com.hupu.adver_creative.mine.MineTabAd", "loadFromNet", f, "MineTabAd#loadFromNet");
+        // 穿山甲商城位（该类没有 loadSuccess —— 那是 OnLoadListener 接口上的方法，
+        // 实测 MISS 后按它真实的方法表换成 loadAd，双保险仍然成立）
+        sceneBlock("com.hupu.adver_creative.csjmall.HpCsjAdCore", "loadFromNet", f, "HpCsjAdCore#loadFromNet");
+        sceneBlock("com.hupu.adver_creative.csjmall.HpCsjAdCore", "loadAd", f, "HpCsjAdCore#loadAd");
     }
 }
