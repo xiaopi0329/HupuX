@@ -535,10 +535,13 @@ Class<?> c = Class.forName("com.hupu.adver_boot.HpSplashAd", false, cl);
 ### 10.4 构建
 
 ```powershell
-$env:JAVA_HOME='D:\codex\虎扑\.tools\jdk-17.0.20.1+1'   # 或任意 JDK 17
+# 必须 JDK 21：JDK 17 下 Gradle 会报 "Failed to load native library 'native-platform.dll'"
+$env:JAVA_HOME='D:\codex\虎扑\tools\jdk\jdk-21.0.12.1+1'
 $env:ANDROID_HOME='D:\codex\虎扑\tools\android-sdk'      # 需要 platforms;android-35 和 build-tools;35.0.0
-cd D:\codex\虎扑\module
-gradle assembleDebug        # 或 assembleRelease（已配好自签名 keystore）
+# GRADLE_USER_HOME 必须留在工作区内，否则沙箱放行不了 C:\Users\...\AppData\Roaming\.gradle
+$env:GRADLE_USER_HOME='D:\codex\虎扑\.gradle_home'
+$env:TMP='D:\codex\虎扑\.tmp'; $env:TEMP='D:\codex\虎扑\.tmp'
+& 'D:\codex\虎扑\tools\gradle\bin\gradle.bat' -p 'D:\codex\虎扑\module' assembleRelease
 ```
 
 产物：
