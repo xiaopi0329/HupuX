@@ -103,6 +103,7 @@ public class LogProvider extends ContentProvider {
         out.putBoolean(Config.KEY_BLOCK_SCENE, sp.getBoolean(Config.KEY_BLOCK_SCENE, true));
         out.putBoolean(Config.KEY_VIEW_TREE_SKIP, sp.getBoolean(Config.KEY_VIEW_TREE_SKIP, true));
         out.putBoolean(Config.KEY_CLASS_PROBE, sp.getBoolean(Config.KEY_CLASS_PROBE, false));
+        out.putBoolean(Config.KEY_DEXKIT, sp.getBoolean(Config.KEY_DEXKIT, true));
         out.putBoolean(Config.KEY_VERBOSE, sp.getBoolean(Config.KEY_VERBOSE, true));
         return out;
     }

@@ -66,9 +66,8 @@ public final class HookRegistry {
     /**
      * 给一个已经加载出来的类安装 hook，按<b>登记名</b>查表。
      *
-     * <p>和 {@link #applyTo(XposedInterface, Class)} 的区别：真实类名未必等于登记名
-     * （加固壳会改名、挪包），这时必须显式告诉它用哪个 key 查表，
-     * 否则类拿到了也找不到规则。</p>
+     * <p>给 {@link DexKitResolver} 用：DexKit 认出来的「真实类名」和当初登记的名字
+     * 往往不一样（被混淆或挪包了），这时必须按登记名取 Spec，否则类拿到了却找不到规则。</p>
      *
      * @param registryKey 注册时用的类名
      * @return 本次成功安装的方法数

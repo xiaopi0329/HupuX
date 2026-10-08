@@ -28,6 +28,8 @@
     <string name="item_view_skip_desc">不依赖类名，屏幕上出现「跳过」就点它</string>
     <string name="item_probe">运行时类加载探针</string>
     <string name="item_probe_desc">调试用：把加载到的广告相关类名打到 logcat</string>
+    <string name="item_dexkit">DexKit 类名兜底解析</string>
+    <string name="item_dexkit_desc">目标类被改名或懒加载时，用 DexKit 直接查宿主 dex 把真实类名找出来</string>
     <string name="item_verbose">输出详细日志</string>
     <string name="item_verbose_desc">关闭后只输出关键日志</string>
 

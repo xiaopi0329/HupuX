@@ -65,6 +65,7 @@ public class MainActivity extends Activity {
                     R.string.item_probe, R.string.item_probe_desc, false),
             new Item(Config.KEY_VERBOSE,
                     R.string.item_verbose, R.string.item_verbose_desc, true),
+            new Item(Config.KEY_DEXKIT, R.string.item_dexkit, R.string.item_dexkit_desc, true),
     };
 
     private SharedPreferences prefs;

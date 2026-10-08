@@ -169,7 +169,12 @@ public final class LazyHookInstaller {
             return false;
         }
         List<String> pending = HookRegistry.targets();
+        List<String> unresolved = new ArrayList<>();
         for (String name : pending) {
+            if (HANDLED.contains(name)) {
+                continue;
+            }
+            boolean hit = false;
             for (ClassLoader loader : Collections.unmodifiableList(SEEN_LOADERS)) {
                 try {
                     Class<?> clazz = Class.forName(name, false, loader);
@@ -178,17 +183,81 @@ public final class LazyHookInstaller {
                                 + " via " + loader.getClass().getName());
                         apply(current, clazz);
                     }
+                    hit = true;
+                    break;
                 } catch (Throwable ignored) {
                     // 这个 loader 没有，换下一个
                 }
             }
+            if (!hit) {
+                unresolved.add(name);
+            }
         }
+
+        // 按写死的类名一个都没找到 —— 这时候才值得动用 DexKit：
+        // 它不看类名，直接翻宿主 dex 用「方法长什么样」把目标认出来。
+        if (!unresolved.isEmpty()) {
+            resolveByDexKit(current, unresolved);
+        }
+
         for (String name : pending) {
             if (!HANDLED.contains(name)) {
                 return false;
             }
         }
         return true;
+    }
+
+    /**
+     * 交给 {@link DexKitResolver} 按方法指纹找真实类名。
+     *
+     * <p>重活全在它的后台线程上，这里只是下单，不会卡住主线程。</p>
+     */
+    private static void resolveByDexKit(final XposedInterface current, List<String> unresolved) {
+        if (!Config.dexkitResolve || SEEN_LOADERS.isEmpty()) {
+            return;
+        }
+        DexKitResolver.resolveAsync(SEEN_LOADERS.get(0), unresolved,
+                new DexKitResolver.Listener() {
+                    @Override
+                    public void onResolved(java.util.Map<String, String> resolved) {
+                        for (java.util.Map.Entry<String, String> entry : resolved.entrySet()) {
+                            String registered = entry.getKey();
+                            String real = entry.getValue();
+                            if (HANDLED.contains(registered)) {
+                                continue;
+                            }
+                            Class<?> clazz = loadAnywhere(real);
+                            if (clazz == null) {
+                                continue;
+                            }
+                            // 关键：按**登记名**取规则，真实类名只用来拿 Class
+                            int n = HookRegistry.applyTo(current, clazz, registered);
+                            if (n > 0 && HANDLED.add(registered)) {
+                                Config.i("[延迟安装] DexKit 认领 " + registered + " -> " + real
+                                        + "，装上 " + n + " 个方法");
+                                AdsLog.info("延迟安装", "DexKit 认领 " + registered + "（真实类名 "
+                                        + real + "），装上 " + n + " 个方法");
+                            } else {
+                                Config.w("[延迟安装] DexKit 认下 " + real
+                                        + " 但没有匹配到可 hook 的方法（登记名 " + registered + "）");
+                            }
+                        }
+                    }
+                });
+    }
+
+    /** 用所有见过的 ClassLoader 找真实类名的 Class 对象。 */
+    private static Class<?> loadAnywhere(String className) {
+        for (ClassLoader loader : Collections.unmodifiableList(SEEN_LOADERS)) {
+            try {
+                return Class.forName(className, false, loader);
+            } catch (Throwable ignored) {
+                // 换下一个
+            }
+        }
+        Config.w("[延迟安装] DexKit 认出的类加载不出来：" + className);
+        return null;
     }
 
     /**

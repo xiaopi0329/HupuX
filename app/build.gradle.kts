@@ -78,10 +78,16 @@ android {
 }
 
 dependencies {
-    // 唯一的依赖。libxposed API 运行期由框架提供，编译期 compileOnly 即可。
+    // libxposed API 运行期由框架提供，编译期 compileOnly 即可。
     //
     // 刻意不引入 androidx / appcompat：界面只用系统控件就够（Activity + Switch），
     // 而 appcompat 会连带 androidx 全家桶和 kotlin-stdlib，把 dex 从几十 KB
     // 撑到 5MB 以上 —— 那是这个模块原本 2.5MB 体积的主要来源。
     compileOnly("io.github.libxposed:api:102.0.0")
+
+    // DexKit：运行期直接查询宿主进程里已加载的 dex，用来把「被加固壳藏起来 /
+    // 改名了」的目标类找出来。它会带进 kotlin-stdlib + flatbuffers + 4 个 ABI 的
+    // libdexkit.so（arm64 约 386KB），dex 体积会明显变大 —— 这是本模块唯一
+    // 主动接受体积增长的依赖，换来的是类名变了也能自己找到。
+    implementation("org.luckypray:dexkit:2.3.0")
 }

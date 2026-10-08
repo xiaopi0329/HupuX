@@ -16,6 +16,7 @@
 | 屏蔽信息流广告 | 列表页不再插入广告卡 | `com.hupu.adver_feed.HpFeedAd#canLoadAd`（返回 false）、`#loadItemAd`、`com.hupu.adver_feed.core.HpFeedSdkAd#process` |
 | 屏蔽浮窗广告 | 悬浮小窗广告不再出现 | `com.hupu.adver_float.HpAdFloatCore#loadFromNet` / `#loadSuccess` |
 | 视图兜底 | 不依赖类名，屏幕上出现「跳过」就自动点击 | `android.app.Activity#onResume` |
+| DexKit 类名兜底解析 | 目标类被改名 / 挪包 / 懒加载时，用 DexKit 直接查宿主 dex 按方法指纹把真实类名找出来 | 无固定 Hook 点，见下文「DexKit 兜底解析」 |
 | 运行时类加载探针 | 调试用：把加载到的广告相关类名打到 logcat | `java.lang.ClassLoader#loadClass` |
 
 另外还有三项应用级功能：
@@ -118,6 +119,10 @@ release 包约 **54 KB**（早期版本 2.5 MB）。主要做了三件事：
 | release 开启 R8 + 资源收缩 | 去掉未使用的代码与资源条目 |
 | 图标由 PNG 换成有损 WebP(q92) | 77.6 KB → 18.2 KB，192px 下肉眼无差别 |
 
+> DexKit 是本模块**唯一主动接受体积增长**的依赖：APK 从 54 KB 变成约 **1.6 MB**（其中 4 个 ABI 的
+> `libdexkit.so` 各 257~435 KB，STORED 未压缩），运行期还会带进 kotlin-stdlib 与 flatbuffers。
+> 换来的是「类名变了也能自己找回来」。不想要可以关掉「DexKit 类名兜底解析」开关。
+
 模块本身只有 15 个类、无第三方运行时依赖，唯一依赖 libxposed API 还是 `compileOnly`
 （运行期由框架提供），所以压到这个体积是合理的。
 
@@ -135,7 +140,10 @@ release 包约 **54 KB**（早期版本 2.5 MB）。主要做了三件事：
 │       │   ├── Config.java                 # 开关与日志
 │       │   ├── AdHooks.java                # 精确 Hook 点（只登记规则）
 │       │   ├── HookRegistry.java           # 规则表：类名 → 要 hook 的方法
+│       │   ├── HookFingerprints.java       # 方法指纹表（DexKit 认类用）
 │       │   ├── LazyHookInstaller.java      # 延迟安装器（加固应用必须）
+│       │   ├── DexKitResolver.java         # DexKit 兜底解析（拆容器 → 建 zip → 查 dex）
+│       │   ├── DexUnpacker.java            # 把易盾容器拆成 21 段头部完好的 dex
 │       │   ├── HookUtil.java               # 反射查方法 + 调 hook() 的公共逻辑
 │       │   ├── SplashSkipHelper.java       # 视图树兜底跳过
 │       │   ├── ClassProbe.java             # 运行时类加载探针
@@ -154,7 +162,7 @@ release 包约 **54 KB**（早期版本 2.5 MB）。主要做了三件事：
 └── settings.gradle.kts / build.gradle.kts / gradle.properties
 ```
 
-## 三个实现要点
+## 实现要点
 
 ### 1. 加固应用的 Hook 时机
 
@@ -166,6 +174,39 @@ release 包约 **54 KB**（早期版本 2.5 MB）。主要做了三件事：
 > **一是在 FPA(LSPlant) 上挂钩它会让虎扑卡死在启动阶段**（主线程停在 Hook 安装之后，进程活着但没有窗口）；
 > 二是回看日志发现它**从未真正捕获过目标类**——Java 层的 `loadClass` 只覆盖显式调用，
 > ART 在链接/校验阶段隐式解析类时不会走它，实际干活的一直是定时重试。
+
+### 1b. DexKit 兜底解析（类名变了也能自己找回来）
+
+上面那套定时重试解决的是「类还没加载」，但解决不了「类被改名 / 挪包」。为此模块集成了
+[DexKit](https://github.com/LuckyPray/DexKit) `2.3.0`：定时重试全部失败之后，用
+**方法指纹**（方法名 + 精确参数个数 + 参数/返回类型）去宿主已加载的 dex 里反查真实类名。
+
+这条路在虎扑上比想象中难走，踩到并解决的坑：
+
+1. **不能直接用 `create(classLoader, true)`**。DexKit 的内存 dex 路线会把运行期镜像零拷贝喂给
+   内置的 slicer，而虎扑的壳在每段 dex 的**前 4096 字节**做了置乱 —— 不只是 112 字节的头，
+   `string_ids` 表的前 996 项（`112 + 996*4 == 4096`）也被替换成了密文。slicer 解析到越界的
+   `string_data_off` 时 `SLICER_CHECK_GE` 失败，**native 直接 abort，Java 侧 try/catch 接不住**，
+   宿主进程当场死（实测两个进程同时 SIGABRT）。
+2. **`create(apkPath)` 也不行**：宿主 APK 里只有一个 `classes.dex`，而且它是 DEFLATE 存储的
+   100MB 容器，30 个壳类之外什么都看不到。
+3. 最终路线：**自己把容器拆成 21 段头部完好的独立 dex，写成临时 zip，再 `create(zipPath)`**。
+   - `DexUnpacker` 扫 `map_list` 首项锚点定位每段边界，重建 112 字节头；
+   - 被置乱的 `string_ids` 表用 **`STRING_DATA` 段反推**：d8/dx 按索引顺序连续写出字符串，
+     所以顺序走一遍 `string_data_item` 就能还原整张表，再和表尾未被破坏的部分逐项比对确认
+     （`MIN_TRUSTED_SUFFIX = 64`）；
+   - zip 入口名必须严格是连续的 `classes.dex` / `classes2.dex` / …，用 `STORED` 让 DexKit
+     零拷贝引用；
+   - `libdexkit.so` 直接用 `System.loadLibrary("dexkit")` 即可 —— 模块 APK 的 so 是 STORED
+     且 4096 页对齐的，LSPosed 的 `LspModuleClassLoader.findLibrary` 能直接找到。
+4. 认类之后**必须按「登记名」而不是「真实类名」查规则表**（`HookRegistry.applyTo(api, clazz, key)`），
+   否则类拿到了却找不到对应的 Hook 规则。
+
+> 单段 5KB 的 `classes21.dex` 会被丢弃：它的 `STRING_DATA` 段落在被毁区（off=1588 < 4096），
+> 无法确认 `string_ids`，留着会让解析器 abort。它只有 7 个 class_defs，对广告拦截无影响。
+
+> 判分采用「唯一性」而不是「相似度最高」：得分必须 ≥7、必须有强指纹命中（方法名 + 参数个数 +
+> 类型全中）或类名全等，且与次选的分差 ≥3，否则**宁可放弃也不装错 Hook**。
 
 ### 2. 跨进程的拦截日志
 
@@ -181,7 +222,9 @@ release 包约 **54 KB**（早期版本 2.5 MB）。主要做了三件事：
 
 ## 已知限制
 
-- Hook 点基于虎扑 **8.2.63** 的类名编写。虎扑升级后若类名变化，精确 Hook 会失效，但「视图兜底」和「SDK 初始化阻断」仍能起作用；可用「运行时类加载探针」定位新类名。
+- Hook 点基于虎扑 **8.2.63** 的类名编写。虎扑升级后若类名变化，精确 Hook 会失效；此时「DexKit 类名兜底解析」会按方法指纹尝试把真实类名找回来（**需要 `HookFingerprints` 里登记了该目标的方法指纹**，没登记的目标不会走 DexKit）。
+- DexKit 兜底解析要先把宿主 100MB 的 `classes.dex` 解压 + 拆段 + 写临时 zip，**首次触发约耗时 1.5~2 秒、峰值内存约 100MB**，跑完即释放（临时文件也会删）。因此在启动阶段如果定时重试已经全部命中，就完全不会走这条路。
+- `classes21.dex`（5KB、7 个 class_defs）因头部被毁无法修复，会被丢弃；实测对广告拦截无影响。
 - `minApiVersion=101`，需要支持 libxposed 现代 API 的框架（LSPosed 2.x / FPA 3.x / LSPatch 1.x）。
 - 清空虎扑应用数据会让「首次使用协议」重新弹出。
 

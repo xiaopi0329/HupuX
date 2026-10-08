@@ -29,6 +29,7 @@ public final class Config {
     public static final String KEY_BLOCK_SCENE = "block_scene_ad";
     public static final String KEY_VIEW_TREE_SKIP = "view_tree_skip";
     public static final String KEY_CLASS_PROBE = "class_probe";
+    public static final String KEY_DEXKIT = "dexkit_resolve";
     public static final String KEY_VERBOSE = "verbose_log";
     /** 配置来源标记（只在 Provider 兜底通道的返回里出现）。 */
     public static final String KEY_CONFIG_SOURCE = "config_source";
@@ -40,6 +41,7 @@ public final class Config {
     public static volatile boolean blockSceneAd = true;
     public static volatile boolean viewTreeSkip = true;
     public static volatile boolean classProbe = false;
+    public static volatile boolean dexkitResolve = true;
     public static volatile boolean verbose = true;
 
     private Config() {
@@ -53,6 +55,7 @@ public final class Config {
         blockSceneAd = sp.getBoolean(KEY_BLOCK_SCENE, true);
         viewTreeSkip = sp.getBoolean(KEY_VIEW_TREE_SKIP, true);
         classProbe = sp.getBoolean(KEY_CLASS_PROBE, false);
+        dexkitResolve = sp.getBoolean(KEY_DEXKIT, true);
         verbose = sp.getBoolean(KEY_VERBOSE, true);
     }
 
@@ -84,13 +87,14 @@ public final class Config {
             blockSceneAd = b.getBoolean(KEY_BLOCK_SCENE, true);
             viewTreeSkip = b.getBoolean(KEY_VIEW_TREE_SKIP, true);
             classProbe = b.getBoolean(KEY_CLASS_PROBE, false);
+            dexkitResolve = b.getBoolean(KEY_DEXKIT, true);
             verbose = b.getBoolean(KEY_VERBOSE, true);
             configSource = "provider";
             i("[配置] 已经 Provider 兜底通道读到模块开关：开屏=" + skipSplashAd
                     + " SDK=" + blockAdSdkInit + " 信息流=" + blockFeedAd
                     + " 浮窗=" + blockFloatAd + " 场景=" + blockSceneAd
                     + " 视图兜底=" + viewTreeSkip + " 探针=" + classProbe
-                    + " 详细日志=" + verbose);
+                    + " 详细日志=" + verbose + " DexKit=" + dexkitResolve);
         } catch (Throwable t) {
             w("[配置] Provider 兜底通道不可用：" + t);
         }
